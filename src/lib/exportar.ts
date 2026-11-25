@@ -255,15 +255,18 @@ function sanearTramo(
     return { tramo: null, idRenombrado: false };
   }
 
-  // El tramo tiene que empezar dentro del día al que pertenece la jornada.
+  // El tramo tiene que empezar dentro del día al que pertenece la jornada
+  // (respetando días de 23 h y 25 h en cambios de horario DST).
   const comienzoDelDia = inicioDelDiaLocal(fecha);
-  if (posible.inicio < comienzoDelDia || posible.inicio >= comienzoDelDia + MS_POR_DIA) {
+  const finDelDia = inicioDelDiaLocal(sumarDias(fecha, 1));
+  const duracionMaxDia = Math.max(MS_POR_DIA, finDelDia - comienzoDelDia);
+  if (posible.inicio < comienzoDelDia || posible.inicio >= finDelDia) {
     return { tramo: null, idRenombrado: false };
   }
 
   if (posible.fin !== null) {
     if (posible.fin < posible.inicio) return { tramo: null, idRenombrado: false };
-    if (posible.fin - posible.inicio > MS_POR_DIA) return { tramo: null, idRenombrado: false };
+    if (posible.fin - posible.inicio > duracionMaxDia) return { tramo: null, idRenombrado: false };
   }
 
   const idBruto =

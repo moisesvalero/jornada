@@ -349,7 +349,11 @@
           id="nota"
           class="entrada"
           type="text"
+          maxlength={500}
           bind:value={nota}
+          oninput={() => {
+            tocado = true;
+          }}
           placeholder="Inventario, reposición…"
         />
       </section>

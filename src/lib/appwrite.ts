@@ -39,7 +39,8 @@ export const COLECCION_AJUSTES =
 export const configurado = Boolean(ENDPOINT && PROJECT);
 
 /** Endpoint de Appwrite sin pasar por el proxy. Ver `abrirLoginConGoogle`. */
-export const ENDPOINT_DIRECTO = 'https://fra.cloud.appwrite.io/v1';
+export const ENDPOINT_DIRECTO =
+  import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://fra.cloud.appwrite.io/v1';
 
 export const client = new Client();
 

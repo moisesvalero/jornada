@@ -24,6 +24,8 @@
 export const config = { runtime: 'edge' };
 
 const APPWRITE = 'https://fra.cloud.appwrite.io/v1';
+const APPWRITE_BASE = new URL(`${APPWRITE}/`);
+const PREFIJOS_PERMITIDOS = new Set(['account', 'databases']);
 
 /** Cabeceras que no deben reenviarse tal cual. */
 const A_QUITAR = new Set(['host', 'content-length', 'accept-encoding', 'connection']);
@@ -34,7 +36,50 @@ export default async function handler(peticion: Request): Promise<Response> {
   // `[...catch-all]` de Next no existe aquí y las rutas profundas darían 404.
   const ruta = (entrada.searchParams.get('ruta') ?? '').replace(/^\/+/, '');
   entrada.searchParams.delete('ruta');
-  const destino = `${APPWRITE}/${ruta}${entrada.search}`;
+
+  let rutaDecodificada: string;
+  try {
+    rutaDecodificada = decodeURIComponent(ruta);
+  } catch {
+    return new Response(JSON.stringify({ message: 'Ruta inválida' }), {
+      status: 400,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  if (
+    !ruta ||
+    ruta.includes('\\') ||
+    rutaDecodificada.includes('\\') ||
+    ruta.split('/').some((seg) => seg === '.' || seg === '..') ||
+    rutaDecodificada.split('/').some((seg) => seg === '.' || seg === '..')
+  ) {
+    return new Response(JSON.stringify({ message: 'Ruta no permitida' }), {
+      status: 400,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  const primerSegmento = ruta.split('/')[0]?.toLowerCase() ?? '';
+  if (!PREFIJOS_PERMITIDOS.has(primerSegmento)) {
+    return new Response(JSON.stringify({ message: 'Endpoint no permitido' }), {
+      status: 403,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  const destinoUrl = new URL(ruta, APPWRITE_BASE);
+  if (
+    destinoUrl.origin !== APPWRITE_BASE.origin ||
+    !destinoUrl.pathname.startsWith(APPWRITE_BASE.pathname)
+  ) {
+    return new Response(JSON.stringify({ message: 'Ruta fuera de ámbito' }), {
+      status: 400,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+  destinoUrl.search = entrada.search;
+  const destino = destinoUrl.toString();
 
   const cabeceras = new Headers();
   for (const [nombre, valor] of peticion.headers) {
